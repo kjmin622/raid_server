@@ -1,0 +1,15 @@
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\bin\Debug\net6.0\testclient.exe
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\bin\Debug\net6.0\testclient.deps.json
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\bin\Debug\net6.0\testclient.runtimeconfig.json
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\bin\Debug\net6.0\testclient.dll
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\bin\Debug\net6.0\testclient.pdb
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\obj\Debug\net6.0\testclient.csproj.AssemblyReference.cache
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\obj\Debug\net6.0\testclient.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\obj\Debug\net6.0\testclient.AssemblyInfoInputs.cache
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\obj\Debug\net6.0\testclient.AssemblyInfo.cs
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\obj\Debug\net6.0\testclient.csproj.CoreCompileInputs.cache
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\obj\Debug\net6.0\testclient.dll
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\obj\Debug\net6.0\refint\testclient.dll
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\obj\Debug\net6.0\testclient.pdb
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\obj\Debug\net6.0\testclient.genruntimeconfig.cache
+C:\Users\kjmin\Documents\cresent_server\src\testclient\testclient\obj\Debug\net6.0\ref\testclient.dll
