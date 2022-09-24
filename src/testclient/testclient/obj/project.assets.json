@@ -14,9 +14,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\kjmin\\Documents\\cresent_server\\src\\testclient\\testclient\\testclient.csproj",
-      "projectName": "testclient",
-      "projectPath": "C:\\Users\\kjmin\\Documents\\cresent_server\\src\\testclient\\testclient\\testclient.csproj",
+      "projectUniqueName": "C:\\Users\\kjmin\\Documents\\cresent_server\\src\\testclient\\testclient\\client.csproj",
+      "projectName": "client",
+      "projectPath": "C:\\Users\\kjmin\\Documents\\cresent_server\\src\\testclient\\testclient\\client.csproj",
       "packagesPath": "C:\\Users\\kjmin\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\kjmin\\Documents\\cresent_server\\src\\testclient\\testclient\\obj\\",
       "projectStyle": "PackageReference",
