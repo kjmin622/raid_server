@@ -17,9 +17,9 @@ namespace cresent_overflow_server.packet
         [DataMember]
         public int hp { get; set; }
         [DataMember]
-        public string[] status_ailment_id { get; set; }
+        public List<string> status_ailment_id { get; set; }
         [DataMember]
-        public string[] status_ailment_time { get; set; }
+        public List<string> status_ailment_time { get; set; }
         [DataMember]
         public int total_deal { get; set; }
 

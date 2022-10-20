@@ -34,9 +34,6 @@ namespace cresent_overflow_server
 
             Raid raid = new Raid(port, listener, clients, streams, clients_info, server_start_time);
             raid.Start();
-
-            Console.WriteLine("?");
-            Thread.Sleep(10000000);
         }
 
         static void Main(string[] args) 

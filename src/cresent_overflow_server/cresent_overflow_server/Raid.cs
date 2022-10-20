@@ -89,8 +89,8 @@ namespace cresent_overflow_server
         {
             while (true)
             {
-                Thread.Sleep(1000); // test
-
+                players_info[0].hp -= 1;
+                Thread.Sleep(1000);
                 // 클라이언트로부터 정보 받아오기
                 recv_data_str = "";
                 int idx = 0;
@@ -103,22 +103,33 @@ namespace cresent_overflow_server
 
                 }
 
+                bool is_change_damage_to_enemy = false;
+                bool is_change_heal_to_player = false;
+                bool is_change_status_ailment = false;
                 // 받아온 정보 토대로 처리하기
                 if(recv_data_str != "")
                 { 
+                    Console.WriteLine(recv_data_str);
                     Dictionary<string,List<string>> classname_json = Funcs.TranslateAString(recv_data_str);
                     ApplyDict(classname_json);
-                    ApplyDamageToEnemy();
-                    ApplyHealToPlayer();
-                    ApplyStatusAilment();
+                    is_change_damage_to_enemy = ApplyDamageToEnemy();
+                    is_change_heal_to_player = ApplyHealToPlayer();
+                    is_change_status_ailment = ApplyStatusAilment();
                 }
-                
 
                 // test
-                foreach(var e in enemy_infos)
+                
+                foreach(PlayerInfo info in players_info)
                 { 
-                    if(e!=null)
-                        Console.WriteLine("id: "+e.enemy_id +" hp: "+ e.hp);
+                    if(info!=null)
+                    { 
+                        Console.Write($"id: {info.client_id}  hp: {info.hp} ");
+                        foreach(string s in info.status_ailment_id)
+                        { 
+                            Console.Write($" {s}");
+                        }
+                        Console.WriteLine();
+                    }
                 }
 
                 // 몬스터 처리 (생성, 공격 등)
@@ -148,7 +159,7 @@ namespace cresent_overflow_server
                 if (clients[i]!=null)
                 {
                     infos[i] = new PlayerInfo { client_id = clients_info[i].client_id, character_id = clients_info[i].character_id,
-                                                        hp = clients_info[i].hp, status_ailment_id = new string[10], status_ailment_time = new string[10],
+                                                        hp = clients_info[i].hp, status_ailment_id = new List<string>(), status_ailment_time = new List<string>(),
                                                         total_deal = 0, total_heal = 0
                     };
                     player_idx.Add(clients_info[i].client_id,i);
@@ -196,17 +207,21 @@ namespace cresent_overflow_server
             }
         }
     
-        private void ApplyDamageToEnemy()
+        // 변화 있었으면 true
+        private bool ApplyDamageToEnemy()
         {
+            bool return_value = false;
             while(player_damage_info_queue.Count != 0)
             { 
+                return_value = true;
                 PlayerDamageInfo info = player_damage_info_queue.Dequeue();
                 string clientid = info.client_id;
                 string enemyid = info.enemy_id;
                 int damage = info.damage;
-                players_info[player_idx[clientid]].total_deal += damage;
-                if (enemy_idx.ContainsKey(enemyid))
+                
+                if (enemy_idx.ContainsKey(enemyid) && player_idx.ContainsKey(clientid))
                 {
+                    players_info[player_idx[clientid]].total_deal += damage;
                     enemy_infos[enemy_idx[enemyid]].hp -= damage;
                     // 적 사망
                     if(enemy_infos[enemy_idx[enemyid]].hp <= 0)
@@ -216,12 +231,48 @@ namespace cresent_overflow_server
                     }
                 }
             }
+            return return_value;
         }
-        private void ApplyHealToPlayer()
+        private bool ApplyHealToPlayer()
         { 
+            bool return_value = false;
+            while(player_heal_info_queue.Count != 0)
+            { 
+                return_value = true;
+                PlayerHealInfo info = player_heal_info_queue.Dequeue();
+                string client_id = info.client_id;
+                string target_id = info.target_id;
+                int heal = info.heal;
+
+                if(player_idx.ContainsKey(client_id) && player_idx.ContainsKey(target_id) && players_info[player_idx[target_id]].hp!=0)
+                {
+                    players_info[player_idx[client_id]].total_heal += heal;
+                    players_info[player_idx[target_id]].hp = Math.Min(players_info[player_idx[target_id]].hp+heal, clients_info[player_idx[target_id]].hp);
+                }
+            }
+            return return_value;
         }
-        private void ApplyStatusAilment()
+        private bool ApplyStatusAilment()
         { 
+            bool return_value = false;
+            while(inflict_status_ailment_info_queue.Count!=0)
+            { 
+                return_value = true;
+                InflictStatusAilmentInfo info = inflict_status_ailment_info_queue.Dequeue();
+                string target_id = info.target_id;
+                bool is_player = info.is_player;
+                string status_ailment_id = info.status_ailment_id;
+                string status_ailment_time = info.status_ailment_time;
+                if(is_player)
+                {
+                    if (player_idx.ContainsKey(target_id))
+                    {
+                        players_info[player_idx[target_id]].status_ailment_id.Add(status_ailment_id);
+                        players_info[player_idx[target_id]].status_ailment_time.Add(status_ailment_time);
+                    }
+                }
+            }
+            return return_value;
         }
 
         private void AddEnemy(string enemy_fix_id, int max_hp)
@@ -238,6 +289,22 @@ namespace cresent_overflow_server
                     break;
                 }
             }
+        }
+
+        private void CheckAilmentTime()
+        { 
+            // 플레이어
+            for(int i=0; i<Constant.MAXIMUM; i++)
+            {
+                if (players_info[i] != null)
+                { 
+                    for(int j=0; j < players_info[i].status_ailment_time.Count; j++)
+                    { 
+                        ; // 여기부터 개발해야함, 
+                    }
+                }
+            }
+            // 적
         }
     }
 }

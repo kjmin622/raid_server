@@ -59,7 +59,19 @@ namespace cresent_overflow_server
 
 
                 string data = Funcs.PacketToString(streams[client_cnt], 1024);
-                clients_info[client_cnt] = JsonSerializer.Deserialize<ClientInfo>(data);
+                ClientInfo tmpinfo = JsonSerializer.Deserialize<ClientInfo>(data);
+                foreach(ClientInfo info in clients_info)
+                { 
+                    if(info != null)
+                    {
+                        if(tmpinfo.client_id == info.client_id)
+                        { 
+                            Funcs.Print("already join player",port);
+                            throw(new IOException());
+                        }
+                    }
+                }
+                clients_info[client_cnt] = tmpinfo;
                 Funcs.Print($"{client_cnt}: ({clients_info[client_cnt].client_id},{clients_info[client_cnt].character_id},{clients_info[client_cnt].hp})",port);
                 Funcs.Print("- user info read success", port);
 
@@ -73,6 +85,7 @@ namespace cresent_overflow_server
                 Funcs.Print("client connect error", port);
                 clients[client_cnt].Close();
                 streams[client_cnt].Close();
+                clients_info[client_cnt] = null;
                 clients[client_cnt] = null;
                 streams[client_cnt] = null;
             }
