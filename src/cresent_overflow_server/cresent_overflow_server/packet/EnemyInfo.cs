@@ -13,12 +13,12 @@ namespace cresent_overflow_server.packet
         [DataMember]
         public string enemy_id { get; set; }
         [DataMember]
-        public string enemy_sid { get; set; }
+        public string enemy_sid { get; set; } // 클라이언트가 가지는 적 정보 공통 id
         [DataMember]
         public int hp { get; set; }
         [DataMember]
-        public string[] status_ailment_id { get; set; }
+        public List<string> status_ailment_id { get; set; }
         [DataMember]
-        public string[] status_ailment_time { get; set; }
+        public List<string> status_ailment_time { get; set; }
     }
 }

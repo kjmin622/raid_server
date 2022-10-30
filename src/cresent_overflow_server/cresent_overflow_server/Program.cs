@@ -21,7 +21,7 @@ namespace cresent_overflow_server
             TcpClient[] clients = new TcpClient[Constant.MAXIMUM];
             NetworkStream[] streams = new NetworkStream[Constant.MAXIMUM];
             ClientInfo[] clients_info = new ClientInfo[Constant.MAXIMUM];
-            DateTime server_start_time = DateTime.Now;
+            DateTime server_start_time = Utility.Today();
 
             listener.Start();
 
@@ -29,7 +29,7 @@ namespace cresent_overflow_server
             WaitRoom waitroom = new WaitRoom(port, listener, clients, streams, clients_info, server_start_time);
             waitroom.Start();
             // 5분동안 유저 진입
-            // 풀꽉 시, 대기 / 빈 자리 있으면 들어가기
+            // 풀꽉 시 대기 / 빈 자리 있으면 들어가기
             // 3초마다 모든 유저에게 현재 남은 시간(초)과 현재 들어온 유저 데이터 쏴줌
 
             Raid raid = new Raid(port, listener, clients, streams, clients_info, server_start_time);
