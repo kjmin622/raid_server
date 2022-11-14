@@ -11,6 +11,6 @@ namespace cresent_overflow_server
         public const int MAXIMUM = 5;
         public const double WAITMINUTE = 10.0/60;
         public const int MAXENEMY = 30;
-        public const int BOSS_MAXHP = 2000;
+        public const int BOSS_MAXHP = 11000;
     }
 }

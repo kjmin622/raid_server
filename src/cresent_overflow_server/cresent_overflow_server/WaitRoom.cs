@@ -155,10 +155,6 @@ namespace cresent_overflow_server
                     Funcs.SendByteArray(streams[i],senddata);
                 }
             }
-
-            
-
-
         }
     }
 }

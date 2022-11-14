@@ -46,6 +46,7 @@ namespace cresent_overflow_server
             thread_easy_server1 = new Thread(new ThreadStart(
                 () => ThreadMain(port_set[0], "easy")
                 ));
+
             thread_hard_server1 = new Thread(new ThreadStart(
                 () => ThreadMain(port_set[1], "hard")
                 ));

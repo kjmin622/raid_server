@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace cresent_overflow_server.packet
 {
     [DataContract]
-    class EnemyUseSkillInfo
+    public class EnemyUseSkillInfo
     {
         [DataMember]
         public string enemy_id { get; set; }

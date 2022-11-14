@@ -27,7 +27,7 @@ namespace cresent_overflow_server
         private PlayerInfo[] players_info;
         private Queue<string> player_use_skill_info_queue; // 서버에서 따로 처리 없이 클라이언트들에게 그대로 뿌려줄거라 string
         private Queue<string> player_attack_info_queue; // // 서버에서 따로 처리 없이 클라이언트들에게 그대로 뿌려줄거라 string
-        private Queue<PlayerDamageInfo> player_damage_info_queue;   
+        private Queue<PlayerDamageInfo> player_damage_info_queue;
         private Queue<PlayerHealInfo> player_heal_info_queue;
         private Queue<InflictStatusAilmentInfo> inflict_status_ailment_info_queue;
         private EnemyInfo[] enemys_info;
@@ -173,42 +173,20 @@ namespace cresent_overflow_server
                     // 클리어 성공 처리
                     String[] deal_king = DealKing();
                     String heal_king = HealKing();
-                    //return;
+                    return;
                 }
                 
                 //// 모든 플레이어 사망
                 if(AllPlayerDie())
-                { 
+                {
                     // 클리어 실패 처리
+                    return;
                 }
 
                 // 플레이어에게 정보 보내주기
 
 
-                
-
-                // debug
-                debug_cnt++;
-                if(debug_cnt == 30)
-                { 
-                    debug_cnt=0;
-                    Console.WriteLine((Utility.Today()-raid_start_time).TotalSeconds+" "+(Utility.Today()-less_minute5_boss_appear_time).TotalSeconds+" "+enemy_cnt);
-                    for(int i=0; i<Constant.MAXENEMY; i++) 
-                    {
-                        if (enemys_info[i]!=null)
-                        { 
-                            Console.Write("{"+enemys_info[i].enemy_sid+" "+enemys_info[i].enemy_id+" " + enemys_info[i].hp+"},");
-                            enemys_info[i].hp -= rand.Next(30,50);
-                            if (enemys_info[i].enemy_sid=="OVER1") boss_hp = enemys_info[i].hp;
-                            if (enemys_info[i].hp<0)
-                            {
-                                enemys_info[i]=null;
-                                enemy_cnt --;
-                            }
-                        }
-                    }
-                    Console.WriteLine("\n");
-                }
+              
             }
         }
 
@@ -351,8 +329,21 @@ namespace cresent_overflow_server
                 {
                     if (player_idx.ContainsKey(target_id))
                     {
-                        players_info[player_idx[target_id]].status_ailment_id.Add(status_ailment_id);
-                        players_info[player_idx[target_id]].status_ailment_time.Add(status_ailment_time);
+                        List<string> aid = players_info[player_idx[target_id]].status_ailment_id; //
+                        List<string> atime = players_info[player_idx[target_id]].status_ailment_time; //
+                        int findidx = aid.FindIndex((string str)=>(str.Equals(status_ailment_id)));
+                        if(findidx == -1) 
+                        { 
+                            aid.Add(status_ailment_id);
+                            atime.Add(status_ailment_time);
+                        }
+                        else
+                        {
+                            if(DateTime.Compare(DateTime.Parse(atime[findidx]),DateTime.Parse(status_ailment_time))<0)
+                            {
+                                atime[findidx] = status_ailment_time;
+                            }
+                        }
                     }
                 }
             }
