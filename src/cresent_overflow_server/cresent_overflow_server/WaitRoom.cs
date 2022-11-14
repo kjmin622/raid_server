@@ -32,11 +32,11 @@ namespace cresent_overflow_server
 
         public void Start()
         {
-            while ((DateTime.Now - server_start_time).TotalMinutes < Constant.WAITMINUTE)
+            while ((Utility.Today() - server_start_time).TotalMinutes < Constant.WAITMINUTE)
             {
                 
                 Thread.Sleep(3000);
-                Funcs.Print(Convert.ToInt32((DateTime.Now - server_start_time).TotalSeconds), port);
+                Funcs.Print(Convert.ToInt32((Utility.Today() - server_start_time).TotalSeconds), port);
                 if (client_cnt != Constant.MAXIMUM && listener.Pending())
                     AcceptPlayer();
                 SendInfoForPlayers();
@@ -112,7 +112,7 @@ namespace cresent_overflow_server
                     streams[i].Flush();
                     try
                     {
-                        senddata_str += "$" + Convert.ToInt32((DateTime.Now - server_start_time).TotalSeconds).ToString() + "&";
+                        senddata_str += "$" + Convert.ToInt32((Utility.Today() - server_start_time).TotalSeconds).ToString() + "&";
                         for (int j = 0; j < Constant.MAXIMUM; j++)
                         {
                             if (clients[j] != null)
