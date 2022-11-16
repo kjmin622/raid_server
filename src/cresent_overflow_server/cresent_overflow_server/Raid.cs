@@ -180,7 +180,8 @@ namespace cresent_overflow_server
                 if(AllPlayerDie())
                 {
                     // 클리어 실패 처리
-                    return;
+                    // 테스트할동안은 리턴없이
+                    //return;
                 }
 
                 // 플레이어에게 정보 보내주기
