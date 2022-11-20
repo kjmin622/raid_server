@@ -1,7 +1,8 @@
 {
   "ExpandedNodes": [
     "",
-    "\\testclient"
+    "\\testclient",
+    "\\testclient\\packet"
   ],
   "SelectedNode": "\\testclient\\WaitRoom.cs",
   "PreviewInSolutionExplorer": false

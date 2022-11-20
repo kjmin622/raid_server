@@ -25,17 +25,20 @@ namespace cresent_overflow_server
             return data;
         }
 
-        public static byte[] StringToByteArray(string str)
-        {
-            return Encoding.UTF8.GetBytes(str);
-        }
-
+        // 데이터를 문자열로 직렬화
         public static string DataToString<T>(T data)
         {
             string sdata = JsonSerializer.Serialize(data);
             return sdata;
         }
 
+        // 문자열을 바이트배열로 변환
+        public static byte[] StringToByteArray(string str)
+        {
+            return Encoding.UTF8.GetBytes(str);
+        }
+
+        // byte array를 주어진 stream으로써 전송
         public static void SendByteArray(NetworkStream stream, byte[] buff)
         {
             try
@@ -45,6 +48,7 @@ namespace cresent_overflow_server
             catch { }
         }
 
+        // 클라이언트로부터 받아온 문자열 해석해서 딕셔너리로 반환
         public static Dictionary<string, List<string>> TranslateAString(string str)
         {
             Dictionary<string, List<string>> dict = new Dictionary<string, List<string>>();

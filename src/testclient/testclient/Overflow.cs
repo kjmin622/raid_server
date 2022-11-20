@@ -37,7 +37,8 @@ namespace client
                     this.client = new TcpClient(server_ip, port);
                     this.stream = client.GetStream();
                 });
-
+                
+                //임의값
                 this.clientinfo = new ClientInfo { client_id = "TestclientID", character_id = "TestcharacterID", hp = 300 };
                 byte[] buff = Funcs.StringToByteArray(Funcs.DataToString(clientinfo));
 

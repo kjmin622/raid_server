@@ -5,21 +5,14 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace client
+namespace client.packet
 {
     [DataContract]
-    public class ClientInfo
+    public class PlayerAttackInfo
     {
         [DataMember]
         public string client_id { get; set; }
         [DataMember]
-        public string character_id { get; set; }
-        [DataMember]
-        public int hp { get; set; }
-
-        public override string ToString()
-        {
-            return $"({client_id}, {character_id}, {hp})";
-        }
+        public string enemy_id { get; set; }
     }
 }

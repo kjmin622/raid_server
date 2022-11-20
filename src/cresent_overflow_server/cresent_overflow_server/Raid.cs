@@ -22,6 +22,8 @@ namespace cresent_overflow_server
         private Task<string>[] read_datas;
         private string recv_data_str;
 
+        private string send_data_str;
+
         private ClientInfo[] clients_info;
 
         private PlayerInfo[] players_info;
@@ -34,6 +36,7 @@ namespace cresent_overflow_server
 
         private Queue<EnemyAttackInfo> enemy_attack_info_queue;
         private Queue<EnemyUseSkillInfo> enemy_use_skill_info_queue;
+
         private Queue<EnemyDamageInfo> enemy_damage_info_queue;
         private Queue<EnemyHealInfo> enemy_heal_info_queue;
 
@@ -101,6 +104,7 @@ namespace cresent_overflow_server
                 Thread.Sleep(100);
                 // 클라이언트로부터 정보 받아오기
                 recv_data_str = "";
+                send_data_str = "";
                 int idx = 0;
                 for (int i = 0; i < Constant.MAXIMUM; i++) 
                 {
@@ -116,7 +120,6 @@ namespace cresent_overflow_server
                 // 받아온 정보 토대로 처리하기
                 if(recv_data_str != "")
                 { 
-                    Console.WriteLine(recv_data_str);
                     Dictionary<string,List<string>> classname_json = Funcs.TranslateAString(recv_data_str);
                     ApplyDict(classname_json);
                     // 몬스터에게 데미지 적용시키기
@@ -130,12 +133,13 @@ namespace cresent_overflow_server
                 // 플레이어 처리
                 //// 상태이상 시간 확인, 끝난 상태이상 제거
                 CheckAilmentTime();
-                
+
                 // 보스몬스터 처리
-                
+
 
                 // 일반몬스터 처리 (생성, 공격 등)
-                // 5분간 일반몬스터 자동 리스폰
+                //// 5분간 일반몬스터 자동 리스폰, 5분 후부터 보스 등장
+                { 
                 if(ElapsedTime().TotalMinutes<5 && enemy_cnt == 0 && (Utility.Today()-less_minute5_boss_appear_time).TotalSeconds > 10 && less_minute5_boss_appear) 
                 { 
                     if(less_minute5_boss_appear)
@@ -165,8 +169,11 @@ namespace cresent_overflow_server
                     AddEnemy("OVER1",Constant.BOSS_MAXHP);
                     enemys_info[0].hp = boss_hp;
                 }
-                
+                }
+
+
                 // 게임 종료 연산
+                {
                 //// 보스 처치
                 if(BossDie())
                 {
@@ -183,10 +190,18 @@ namespace cresent_overflow_server
                     // 테스트할동안은 리턴없이
                     //return;
                 }
+                }
 
                 // 플레이어에게 정보 보내주기
-
-
+                //// 플레이어 정보 담기
+                AddSendDatas(players_info);
+                //// 적 정보 담기
+                AddSendDatas(enemys_info);
+                //// 플레이어 공격 및 스킬 정보 담기
+                AddSendPlayerSkillAndAttackInfo();
+                //// 적 공격 및 스킬 정보 담기
+                AddSendEnemySkillAndAttackInfo();
+                Console.WriteLine(send_data_str);
               
             }
         }
@@ -203,6 +218,57 @@ namespace cresent_overflow_server
             }
         }
     
+        private void AddSendData<T>(T data)
+        {
+            send_data_str += data.GetType().Name+"&"+Funcs.DataToString(data)+"$";
+        }
+
+        private void AddSendDatas<T>(T[] data)
+        {
+            send_data_str += data.GetType().Name;
+            for(int i=0; i<data.Length; i++)
+            {
+                if (data[i] != null) 
+                { 
+                    send_data_str += "&"+Funcs.DataToString(data[i]);
+                }   
+            }
+            send_data_str += "$";
+
+        }
+
+        private void AddSendPlayerSkillAndAttackInfo()
+        { 
+            send_data_str += "PlayerUseSkillInfo[]";
+            while(player_use_skill_info_queue.Count != 0)
+            { 
+                send_data_str += "&"+player_use_skill_info_queue.Dequeue();
+            }                                                           
+            send_data_str += "$";
+            send_data_str += "PlayerUseAttackInfo[]";
+            while(player_attack_info_queue.Count != 0)
+            { 
+                send_data_str += "&"+player_attack_info_queue.Dequeue();
+            }
+            send_data_str += "$";
+        }
+
+        private void AddSendEnemySkillAndAttackInfo()
+        { 
+            send_data_str += "EnemyUseSkillInfo[]";
+            while(enemy_use_skill_info_queue.Count != 0)
+            { 
+                send_data_str += "&"+Funcs.DataToString(enemy_use_skill_info_queue.Dequeue());
+            }
+            send_data_str += "$";
+            send_data_str += "EnemyUseAttackInfo[]";
+            while(enemy_attack_info_queue.Count != 0)
+            { 
+                send_data_str += "&"+Funcs.DataToString(enemy_attack_info_queue.Dequeue());
+            }
+            send_data_str += "$";
+        }
+
         private PlayerInfo[] MakePlayerInfo()
         { 
             PlayerInfo[] infos = new PlayerInfo[Constant.MAXIMUM];
