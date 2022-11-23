@@ -256,6 +256,7 @@ namespace cresent_overflow_server
 
 
                 // test
+                /*
                 for(int i=0; i<Constant.MAXENEMY; i++)
                 {
                     if (enemys_info[i] != null)
@@ -275,7 +276,7 @@ namespace cresent_overflow_server
                         }
                     }
                 }
-              
+                */
             }
         }
 
