@@ -37,9 +37,6 @@ namespace cresent_overflow_server
         private Queue<EnemyAttackInfo> enemy_attack_info_queue;
         private Queue<EnemyUseSkillInfo> enemy_use_skill_info_queue;
 
-        private Queue<EnemyDamageInfo> enemy_damage_info_queue;
-        private Queue<EnemyHealInfo> enemy_heal_info_queue;
-
         private Dictionary<string,int> player_idx;
         private Dictionary<string,int> enemy_idx;
 
@@ -47,10 +44,19 @@ namespace cresent_overflow_server
         private int enemy_id_idx;
         private int enemy_cnt;
 
+        // 보스 관련 변수들
         private DateTime less_minute5_boss_appear_time;
         private bool less_minute5_boss_appear;
         private bool boss_appear;
         private int boss_hp;
+        private DateTime boss_recent_attack;
+        private DateTime boss_recent_skill_1;
+        private DateTime boss_recent_skill_2;
+        private DateTime boss_recent_skill_3;
+        public TimeSpan BOSS_ATTACK_DELAY = new TimeSpan(0,0,0,1,500);
+        public TimeSpan BOSS_SKILL1_DELAY = new TimeSpan(0,0,12);
+        public TimeSpan BOSS_SKILL2_DELAY = new TimeSpan(0,0,15);
+        public TimeSpan BOSS_SKILL3_DELAY = new TimeSpan(0,0,10);
         Random rand;
        
         public Raid(int port, TcpListener listener, TcpClient[] clients, NetworkStream[] streams, ClientInfo[] clients_info, DateTime server_start_time)
@@ -86,19 +92,36 @@ namespace cresent_overflow_server
             enemys_info = new EnemyInfo[Constant.MAXENEMY];
             enemy_attack_info_queue = new Queue<EnemyAttackInfo>();
             enemy_use_skill_info_queue = new Queue<EnemyUseSkillInfo>();
-            enemy_damage_info_queue = new Queue<EnemyDamageInfo>();
-            enemy_heal_info_queue = new Queue<EnemyHealInfo>();
+
             rand = new Random();
+
+            // 보스 관련 변수들
             less_minute5_boss_appear_time = server_start_time;
             less_minute5_boss_appear = true;
             boss_hp = Constant.BOSS_MAXHP;
             boss_appear = false;
+            boss_recent_attack = Utility.Today();
         }
 
 
         public async void Start()
         {
             int debug_cnt = 0;
+
+            // test player
+            /*
+            players_info[0] = new PlayerInfo { 
+                character_id = "testchar",
+                client_id = "testclient",
+                hp = 2000,
+                status_ailment_id = new List<string>(),
+                status_ailment_time = new List<string>(),
+                total_deal = 0,
+                total_heal = 0
+            };
+            player_idx["testclient"] = 0;
+            */
+
             while (true)
             {
                 Thread.Sleep(100);
@@ -131,11 +154,20 @@ namespace cresent_overflow_server
                 }
 
                 // 플레이어 처리
+                //// 딜링, 힐적용, 상태이상 적용은 위에서 했음
                 //// 상태이상 시간 확인, 끝난 상태이상 제거
                 CheckAilmentTime();
 
-                // 보스몬스터 처리
-
+                // 보스몬스터 행동 처리
+                if (enemys_info[0] != null && enemys_info[0].enemy_sid == "OVER1")
+                { 
+                    BossAttack();
+                }else
+                { 
+                    boss_recent_skill_1 = Utility.Today();
+                    boss_recent_skill_2 = Utility.Today();
+                    boss_recent_skill_3 = Utility.Today();
+                }
 
                 // 일반몬스터 처리 (생성, 공격 등)
                 //// 5분간 일반몬스터 자동 리스폰, 5분 후부터 보스 등장
@@ -170,7 +202,18 @@ namespace cresent_overflow_server
                     enemys_info[0].hp = boss_hp;
                 }
                 }
-
+                //// 일반몬스터 행동 처리
+                for(int i=0; i<Constant.MAXENEMY; i++)
+                {
+                    if (enemys_info[i]!=null && enemys_info[i].enemy_sid != "OVER1")
+                    {
+                        switch(enemys_info[i].enemy_sid)
+                        { 
+                            case "M1001":break;
+                            case "M1004":break;
+                        }
+                    }
+                }
 
                 // 게임 종료 연산
                 {
@@ -201,11 +244,42 @@ namespace cresent_overflow_server
                 AddSendPlayerSkillAndAttackInfo();
                 //// 적 공격 및 스킬 정보 담기
                 AddSendEnemySkillAndAttackInfo();
-                Console.WriteLine(send_data_str);
+                //// 모든 플레이어에게 보내기
+                for(int i=0; i<Constant.MAXIMUM; i++)
+                {
+                    if (players_info[i] != null && streams[i] != null)
+                    {
+                        Funcs.SendByteArray(streams[i], Funcs.StringToByteArray(send_data_str));
+                    }
+                }
+                Console.WriteLine(send_data_str+"\n");
+
+
+                // test
+                for(int i=0; i<Constant.MAXENEMY; i++)
+                {
+                    if (enemys_info[i] != null)
+                    {
+                        enemys_info[i].hp -= 10;
+                        // 보스 hp는 따로 추가 저장
+                        if(enemys_info[i].enemy_sid=="OVER1")
+                        { 
+                            boss_hp = enemys_info[i].hp;
+                        }
+                        // 적 사망
+                        if(enemys_info[i].hp <= 0)
+                        {
+                            enemy_idx.Remove(enemys_info[i].enemy_id);
+                            enemys_info[i] = null;
+                            enemy_cnt--;
+                        }
+                    }
+                }
               
             }
         }
 
+        // stream으로부터 온 데이터 받아서 recv_data_str에 저장하기
         private void Reader(NetworkStream stream)
         {
             try
@@ -218,11 +292,13 @@ namespace cresent_overflow_server
             }
         }
     
+        // 데이터를 직렬화해서 send_data_str에 넣기
         private void AddSendData<T>(T data)
         {
             send_data_str += data.GetType().Name+"&"+Funcs.DataToString(data)+"$";
         }
 
+        // 배열 직렬화해서 send_data_str에 넣기
         private void AddSendDatas<T>(T[] data)
         {
             send_data_str += data.GetType().Name;
@@ -237,6 +313,7 @@ namespace cresent_overflow_server
 
         }
 
+        // 플레이어 공격 및 스킬 사용 정보 큐에 있는 데이터 직렬화해서 send_data_str에 넣기
         private void AddSendPlayerSkillAndAttackInfo()
         { 
             send_data_str += "PlayerUseSkillInfo[]";
@@ -253,6 +330,7 @@ namespace cresent_overflow_server
             send_data_str += "$";
         }
 
+        // 몬스터 공격 및 스킬 사용 정보 큐에 있는 데이터 직렬화해서 send_data_str에 넣기
         private void AddSendEnemySkillAndAttackInfo()
         { 
             send_data_str += "EnemyUseSkillInfo[]";
@@ -269,6 +347,7 @@ namespace cresent_overflow_server
             send_data_str += "$";
         }
 
+        // clients_info[]에 있던 정보 player_info[]로 변환
         private PlayerInfo[] MakePlayerInfo()
         { 
             PlayerInfo[] infos = new PlayerInfo[Constant.MAXIMUM];
@@ -286,6 +365,7 @@ namespace cresent_overflow_server
             return infos;
         }
         
+        // 딕셔너리에 저장한 받은 직렬화 데이터 역직렬화해서 각각의 큐에 넣기
         private void ApplyDict(Dictionary<string,List<string>> classname_json)
         { 
             if(classname_json.ContainsKey("PlayerAttackInfo"))
@@ -330,7 +410,8 @@ namespace cresent_overflow_server
         { 
             return Utility.Today() - raid_start_time;
         }
-        // 변화 있었으면 true
+        
+        // 클라이언트가 준 데이터가 들어간 player_damage_info_queue의 데미지 정보 적용
         private bool ApplyDamageToEnemy()
         {
             bool return_value = false;
@@ -362,6 +443,8 @@ namespace cresent_overflow_server
             }
             return return_value;
         }
+        
+        // 클라이언트가 준 데이터가 들어간 player_heal_info_queue의 상태이상 정보 적용
         private bool ApplyHealToPlayer()
         { 
             bool return_value = false;
@@ -381,6 +464,8 @@ namespace cresent_overflow_server
             }
             return return_value;
         }
+       
+        // 클라이언트가 준 데이터가 들어간 inflict_status_ailment_info_queue의 상태이상 정보 적용
         private bool ApplyStatusAilment()
         { 
             bool return_value = false;
@@ -416,7 +501,8 @@ namespace cresent_overflow_server
             }
             return return_value;
         }
-
+        
+        // 몬스터 생성
         private void AddEnemy(string enemy_fix_id, int max_hp)
         {
             if (enemy_cnt < Constant.MAXENEMY) 
@@ -436,6 +522,8 @@ namespace cresent_overflow_server
                 }
             }
         }
+       
+        // 일반몬스터 cnt마리 생성
         private void AddEnemys(int cnt) 
         { 
             int add_enemy_cnt = cnt/2;
@@ -450,7 +538,8 @@ namespace cresent_overflow_server
             }
             
         }
-
+        
+        // 상태이상이 끝났으면 제거
         private void CheckAilmentTime()
         { 
             // 플레이어
@@ -488,8 +577,9 @@ namespace cresent_overflow_server
                     }
                 }
             }
-        }
-    
+        } 
+       
+        // 모든 플레이어가 죽었으면 true
         private bool AllPlayerDie()
         { 
             for(int i=0; i<Constant.MAXIMUM; i++) 
@@ -501,11 +591,13 @@ namespace cresent_overflow_server
             }
             return true;
         }
+       
+        // 보스가 죽었으면 true
         private bool BossDie()
         { 
             return boss_hp<=0;
         }
-
+       
         // 게임 종료할 때 딜킹 3위까지 클라이언트 아이디 반환, 빈자리는 ""
         private String[] DealKing()
         { 
@@ -542,6 +634,7 @@ namespace cresent_overflow_server
             }
             return king;
         }
+        
         // 게임 종료할 때 힐킹 1위 클라이언트 아이디 반환, 힐킹 없으면 "" 반환
         private String HealKing()
         { 
@@ -556,5 +649,49 @@ namespace cresent_overflow_server
             return king;
         }
 
+        // 살아있는 플레이어 중 아무나 한명
+        private String RandomPlayerPick()
+        {
+            int idx = 0;
+            string[] tmparr = new string[Constant.MAXIMUM];
+            for(int i=0; i<Constant.MAXIMUM; i++)
+            {
+                if (players_info[i] != null && players_info[i].hp > 0)
+                {
+                    tmparr[idx++] = players_info[i].client_id;
+                }
+            }
+            if (idx==0) return "";
+            return tmparr[rand.Next(0,idx)];
+        }
+
+        // 플레이어에게 피해 입히기
+        private void PlayerApplyDamage(string client_id, int damage)
+        {
+            players_info[player_idx[client_id]].hp = Convert.ToInt32(Math.Max(0, players_info[player_idx[client_id]].hp-damage));
+        }
+
+        // 몬스터 공통 행동
+        //// 몬스터 일반 공격 결과 적용 후 send queue에 넣기
+        private void EnemyAttack(string enemy_id, string target_client_id, int damage)
+        { 
+            if(target_client_id == "") return;
+            PlayerApplyDamage(target_client_id, damage);
+            enemy_attack_info_queue.Enqueue(new EnemyAttackInfo { 
+                client_id = target_client_id,
+                enemy_id = enemy_id
+            });
+        }
+
+        // 보스 행동
+        //// 일반공격 후 결과 적용, send queue에 넣기
+        private void BossAttack()
+        { 
+            if(TimeSpan.Compare(Utility.Today() - boss_recent_attack, BOSS_ATTACK_DELAY) == 1)
+            { 
+                boss_recent_attack = Utility.Today();
+                EnemyAttack(enemys_info[0].enemy_id, RandomPlayerPick(), Constant.BOSS_ATTACK_DAMAGE);
+            }
+        }
     }
 }
