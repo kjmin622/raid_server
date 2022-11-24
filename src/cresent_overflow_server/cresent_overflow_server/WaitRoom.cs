@@ -35,10 +35,11 @@ namespace cresent_overflow_server
             while ((Utility.Today() - server_start_time).TotalMinutes < Constant.WAITMINUTE)
             {
                 
-                Thread.Sleep(3000);
+                Thread.Sleep(1000);
                 Funcs.Print(Convert.ToInt32((Utility.Today() - server_start_time).TotalSeconds), port);
                 if (client_cnt != Constant.MAXIMUM && listener.Pending())
                     AcceptPlayer();
+
                 SendInfoForPlayers();
                 SetClientCnt();
             }

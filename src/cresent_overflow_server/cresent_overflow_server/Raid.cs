@@ -66,7 +66,7 @@ namespace cresent_overflow_server
         public TimeSpan BOSS_ATTACK_DELAY = new TimeSpan(0,0,0,1,500);
         public TimeSpan BOSS_SKILL1_DELAY = new TimeSpan(0,0,12);
         public TimeSpan BOSS_SKILL2_DELAY = new TimeSpan(0,0,15);
-        public TimeSpan BOSS_SKILL3_DELAY = new TimeSpan(0,0,10);
+        public TimeSpan BOSS_SKILL3_DELAY = new TimeSpan(0,0,15);
         Random rand;
        
         public Raid(int port, TcpListener listener, TcpClient[] clients, NetworkStream[] streams, ClientInfo[] clients_info, DateTime server_start_time)
@@ -248,7 +248,7 @@ namespace cresent_overflow_server
                         int enemy_idx = constant.ENEMY_NAME_TO_IDX[enemys_info[i].enemy_sid];
                         // 일반공격
                         // 마비 상태이상 걸리면 공속 감소
-                        TimeSpan plustime = enemys_info[0].status_ailment_id.Contains("DF001") ? TimeSpan.FromSeconds(0) : TimeSpan.FromSeconds(BOSS_ATTACK_DELAY.Seconds * 0.2);
+                        TimeSpan plustime = enemys_info[i].status_ailment_id.Contains("DF001") ? TimeSpan.FromSeconds(0) : TimeSpan.FromSeconds(constant.ENEMY_ATTACK_DELAY[enemy_idx].Seconds * 0.2);
                         if (TimeSpan.Compare(Utility.Today() - enemy_recent_attack[enemys_info[i].enemy_id], constant.ENEMY_ATTACK_DELAY[enemy_idx] + plustime) == 1)
                         {
                             enemy_recent_attack[enemys_info[i].enemy_id] = Utility.Today();
@@ -304,9 +304,11 @@ namespace cresent_overflow_server
                     {
                         if (streams[i] != null)
                         {
+                            Console.WriteLine(send_clear_str);
                             Funcs.SendByteArray(streams[i], Funcs.StringToByteArray(send_clear_str));
                         }
                     }
+                    Thread.Sleep(10000);
                     return;
                 }
                 
@@ -321,6 +323,7 @@ namespace cresent_overflow_server
                             Funcs.SendByteArray(streams[i], Funcs.StringToByteArray("fail"));
                         }
                     }
+                    Thread.Sleep(10000);
                     return;
                 }
 
@@ -346,6 +349,15 @@ namespace cresent_overflow_server
                 }
                 Console.WriteLine(send_data_str+"\n");
                 }
+
+                //test
+                //for (int i = 0; i < 30; i++)
+                //{
+                //    if (enemys_info[i] != null)
+                //    {
+                //        ApplyDamage(enemys_info[i].enemy_id, 100, false);
+                //    }
+                //}
             }
         }
 

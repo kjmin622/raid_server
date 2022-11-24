@@ -18,18 +18,37 @@ namespace cresent_overflow_server
 
         public static string PacketToString(NetworkStream stream, int bytesize)
         {
-            byte[] bytes = new byte[bytesize];
-            int length = stream.Read(bytes, 0, bytes.Length);
-            Array.Resize(ref bytes, length);
-            string data = Encoding.Default.GetString(bytes);
-            return data;
+            try
+            {
+                byte[] bytes = new byte[bytesize];
+                int length = stream.Read(bytes, 0, bytes.Length);
+                Array.Resize(ref bytes, length);
+                string data = Encoding.Default.GetString(bytes);
+                return data;
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine("Error: PacketToString error // " + e.ToString());
+                return "";
+            }
+            
         }
 
         // 데이터를 문자열로 직렬화
         public static string DataToString<T>(T data)
         {
-            string sdata = JsonSerializer.Serialize(data);
-            return sdata;
+            try
+            {
+                string sdata = JsonSerializer.Serialize(data);
+                return sdata;
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine("Error: DataToString error // " + e.ToString());
+                return "{}";
+            }
+            
+            
         }
 
         // 문자열을 바이트배열로 변환
@@ -45,31 +64,43 @@ namespace cresent_overflow_server
             {
                 stream.Write(buff, 0, buff.Length);
             }
-            catch { }
+            catch(Exception e)
+            {
+                Console.WriteLine("Error: SendByteArray error // " + e.ToString());
+            }
         }
 
         // 클라이언트로부터 받아온 문자열 해석해서 딕셔너리로 반환
         public static Dictionary<string, List<string>> TranslateAString(string str)
         {
-            Dictionary<string, List<string>> dict = new Dictionary<string, List<string>>();
-
-            string[] class_and_json_together = str.Split('$');
-            Array.Resize(ref class_and_json_together,class_and_json_together.Length-1);
-            foreach(string cj in class_and_json_together)
+            try
             {
-                string[] devide_class_json = cj.Split('&');
-                if (dict.ContainsKey(devide_class_json[0])) 
+                Dictionary<string, List<string>> dict = new Dictionary<string, List<string>>();
+
+                string[] class_and_json_together = str.Split('$');
+                Array.Resize(ref class_and_json_together, class_and_json_together.Length - 1);
+                foreach (string cj in class_and_json_together)
                 {
-                    dict[devide_class_json[0]].Add(devide_class_json[1]);
+                    string[] devide_class_json = cj.Split('&');
+                    if (dict.ContainsKey(devide_class_json[0]))
+                    {
+                        dict[devide_class_json[0]].Add(devide_class_json[1]);
+                    }
+                    else
+                    {
+                        dict.Add(devide_class_json[0], new List<string>());
+                        dict[devide_class_json[0]].Add(devide_class_json[1]);
+                    }
+
                 }
-                else
-                {
-                    dict.Add(devide_class_json[0], new List<string>());
-                    dict[devide_class_json[0]].Add(devide_class_json[1]);
-                }
-                
+                return dict;
             }
-            return dict;
+            catch (Exception e)
+            {
+                Console.WriteLine("Error: TranslateAString error // " + e.ToString());
+                return new Dictionary<string, List<string>>();
+            }
+            
         }
     }
 }

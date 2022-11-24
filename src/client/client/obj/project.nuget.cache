@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "HyO8vuDdxfW22AxRqVePMd/VKDR0Q0iZshOlE+tYGMzNP+zp2VYR0xt8Y6wIvAGObU4od1vkYmnqqfvLCyK0cA==",
+  "dgSpecHash": "ld1mk1tdFYuH3reRtUBFVN8ommWa0JEejDf/gzxyhZd4vFAesQ9RdE9/3hoHnL+mEejw7lq2b40eUlAyAUjvaQ==",
   "success": true,
-  "projectFilePath": "C:\\Users\\kjmin\\Documents\\cresent_server\\src\\client\\client\\client.csproj",
+  "projectFilePath": "/Users/giljeongmin/Documents/raid_server/src/client/client/client.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }

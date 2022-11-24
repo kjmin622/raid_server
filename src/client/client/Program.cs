@@ -9,7 +9,7 @@ namespace client
     {
         private static void ThreadWaitRoom(NetworkStream stream)
         {
-            string sendTestClientData = "{\"client_id\":\"testclient\",\"character_id\":\"testcharacter\",\"hp\":1000}";
+            string sendTestClientData = "{\"client_id\":\"testclient\",\"character_id\":\"testcharacter\",\"hp\":1011100,\"phsysical_defense\":100,\"magic_defense\":100}";
             byte[] sendBuffer = Encoding.UTF8.GetBytes(sendTestClientData);
             stream.Write(sendBuffer, 0, sendBuffer.Length);
 
@@ -35,30 +35,48 @@ namespace client
 
         private static void ThreadRaidRoom(NetworkStream stream)
         {
-            while (true)
+            try
             {
-                byte[] recvBuffer = new byte[10240];
-                int length = stream.Read(recvBuffer, 0, recvBuffer.Length);
-                Array.Resize(ref recvBuffer, length);
-                string strRecvMsg = Encoding.Default.GetString(recvBuffer);
-
-                string[] splitStr = strRecvMsg.Split('$');
-                foreach (string str in splitStr)
+                while (true)
                 {
-                    foreach (string s in str.Split('&'))
+                    byte[] recvBuffer = new byte[10240];
+                    int length = stream.Read(recvBuffer, 0, recvBuffer.Length);
+                    Array.Resize(ref recvBuffer, length);
+                    string strRecvMsg = Encoding.Default.GetString(recvBuffer);
+
+                    string[] splitStr = strRecvMsg.Split('$');
+                    if (splitStr[0] == "clear")
                     {
-                        Console.Write(s + " ");
+                        Console.WriteLine(strRecvMsg);
                     }
+                    foreach (string str in splitStr)
+                    {   
+                        string[] data = str.Split('&');
+
+                        if ((data[0] == "EnemyAttackInfo[]" || data[0] == "EnemyUseSkillInfo[]") && data.Length >= 2)
+                        {
+                            foreach (string s in str.Split('&'))
+                            {
+                                Console.Write(s + " ");
+                            }
+                            Console.WriteLine();
+                        }
+                        
+                    }
+                    
                 }
-                Console.WriteLine();
             }
+            catch
+            {
+                
+            }
+            
         }
 
         static void Main(string[] args)
         {
             string strRecvMsg;
             string strSendMsg;
-
             TcpClient sockClient = new TcpClient("127.0.0.1", 7000);
             NetworkStream stream = sockClient.GetStream();
 
@@ -70,6 +88,7 @@ namespace client
             threadWaitRoom.Join();
 
             threadRaidRoom.Start();
+
             threadRaidRoom.Join();
 
 

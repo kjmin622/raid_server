@@ -34,6 +34,15 @@ namespace cresent_overflow_server
 
             Raid raid = new Raid(port, listener, clients, streams, clients_info, server_start_time);
             raid.Start();
+
+            for (int i = 0; i < Constant.MAXIMUM; i++)
+            {
+                if (streams[i] != null)
+                {
+                    streams[i].Close();
+                    clients[i].Close();
+                }
+            }
         }
 
         static void Main(string[] args) 
