@@ -44,6 +44,12 @@ namespace cresent_overflow_server
         private int enemy_id_idx;
         private int enemy_cnt;
 
+        // 일반몬스터 행동 관련 변수들
+        //// enemy_id : recent_time
+        private Dictionary<string,DateTime> enemy_recent_attack;
+        private TimeSpan M1001_ATTACK_DELAY = new TimeSpan(0,0,0,1);
+        private TimeSpan M1004_ATTACK_DELAY = new TimeSpan(0,0,0,1,200);
+
         // 보스 관련 변수들
         private DateTime less_minute5_boss_appear_time;
         private bool less_minute5_boss_appear;
@@ -95,6 +101,9 @@ namespace cresent_overflow_server
 
             rand = new Random();
 
+            // 일반 몬스터 행동 관련 변수들
+            enemy_recent_attack = new Dictionary<string, DateTime>();
+
             // 보스 관련 변수들
             less_minute5_boss_appear_time = server_start_time;
             less_minute5_boss_appear = true;
@@ -124,8 +133,9 @@ namespace cresent_overflow_server
 
             while (true)
             {
-                Thread.Sleep(100);
+                Thread.Sleep(50);
                 // 클라이언트로부터 정보 받아오기
+                {
                 recv_data_str = "";
                 send_data_str = "";
                 int idx = 0;
@@ -136,29 +146,30 @@ namespace cresent_overflow_server
                         Reader(streams[i]);
                     }
                 }
+                }
 
-                bool is_change_damage_to_enemy = false;
-                bool is_change_heal_to_player = false;
-                bool is_change_status_ailment = false;
-                // 받아온 정보 토대로 처리하기
+                // 받아온 정보 처리하기
+                {
                 if(recv_data_str != "")
                 { 
                     Dictionary<string,List<string>> classname_json = Funcs.TranslateAString(recv_data_str);
                     ApplyDict(classname_json);
                     // 몬스터에게 데미지 적용시키기
-                    is_change_damage_to_enemy = ApplyDamageToEnemy();
+                    ApplyDamageToEnemy();
                     // 플레이어에게 힐 적용시키기
-                    is_change_heal_to_player = ApplyHealToPlayer();
+                    ApplyHealToPlayer();
                     // 상태이상 적용시키기
-                    is_change_status_ailment = ApplyStatusAilment();
+                    ApplyStatusAilment();
                 }
-
+                }
+                
                 // 플레이어 처리
                 //// 딜링, 힐적용, 상태이상 적용은 위에서 했음
                 //// 상태이상 시간 확인, 끝난 상태이상 제거
                 CheckAilmentTime();
 
                 // 보스몬스터 행동 처리
+                {
                 if (enemys_info[0] != null && enemys_info[0].enemy_sid == "OVER1")
                 { 
                     BossAttack();
@@ -168,7 +179,7 @@ namespace cresent_overflow_server
                     boss_recent_skill_2 = Utility.Today();
                     boss_recent_skill_3 = Utility.Today();
                 }
-
+                }
                 // 일반몬스터 처리 (생성, 공격 등)
                 //// 5분간 일반몬스터 자동 리스폰, 5분 후부터 보스 등장
                 { 
@@ -202,17 +213,32 @@ namespace cresent_overflow_server
                     enemys_info[0].hp = boss_hp;
                 }
                 }
+
                 //// 일반몬스터 행동 처리
+                {
                 for(int i=0; i<Constant.MAXENEMY; i++)
                 {
                     if (enemys_info[i]!=null && enemys_info[i].enemy_sid != "OVER1")
                     {
                         switch(enemys_info[i].enemy_sid)
                         { 
-                            case "M1001":break;
-                            case "M1004":break;
+                            case "M1001":
+                                if(TimeSpan.Compare(Utility.Today() - enemy_recent_attack[enemys_info[i].enemy_id], M1001_ATTACK_DELAY) == 1)
+                                { 
+                                    enemy_recent_attack[enemys_info[i].enemy_id] = Utility.Today();
+                                    EnemyAttack(enemys_info[i].enemy_id, RandomPlayerPick(), 7);
+                                }  
+                                break;
+                            case "M1004":
+                                if(TimeSpan.Compare(Utility.Today() - enemy_recent_attack[enemys_info[i].enemy_id], M1001_ATTACK_DELAY) == 1)
+                                { 
+                                    enemy_recent_attack[enemys_info[i].enemy_id] = Utility.Today();
+                                    EnemyAttack(enemys_info[i].enemy_id, RandomPlayerPick(), 8);
+                                }
+                                break;
                         }
                     }
+                }
                 }
 
                 // 게임 종료 연산
@@ -221,8 +247,14 @@ namespace cresent_overflow_server
                 if(BossDie())
                 {
                     // 클리어 성공 처리
-                    String[] deal_king = DealKing();
-                    String heal_king = HealKing();
+                    string send_clear_str = GameClearSendStr();
+                    for(int i=0; i<Constant.MAXIMUM; i++)
+                    {
+                        if (streams[i] != null)
+                        {
+                            Funcs.SendByteArray(streams[i], Funcs.StringToByteArray(send_clear_str));
+                        }
+                    }
                     return;
                 }
                 
@@ -230,12 +262,20 @@ namespace cresent_overflow_server
                 if(AllPlayerDie())
                 {
                     // 클리어 실패 처리
-                    // 테스트할동안은 리턴없이
-                    //return;
+                    for(int i=0; i<Constant.MAXIMUM; i++)
+                    {
+                        if (streams[i] != null)
+                        {
+                            Funcs.SendByteArray(streams[i], Funcs.StringToByteArray("fail"));
+                        }
+                    }
+                    return;
                 }
+
                 }
 
                 // 플레이어에게 정보 보내주기
+                {
                 //// 플레이어 정보 담기
                 AddSendDatas(players_info);
                 //// 적 정보 담기
@@ -253,30 +293,7 @@ namespace cresent_overflow_server
                     }
                 }
                 Console.WriteLine(send_data_str+"\n");
-
-
-                // test
-                /*
-                for(int i=0; i<Constant.MAXENEMY; i++)
-                {
-                    if (enemys_info[i] != null)
-                    {
-                        enemys_info[i].hp -= 10;
-                        // 보스 hp는 따로 추가 저장
-                        if(enemys_info[i].enemy_sid=="OVER1")
-                        { 
-                            boss_hp = enemys_info[i].hp;
-                        }
-                        // 적 사망
-                        if(enemys_info[i].hp <= 0)
-                        {
-                            enemy_idx.Remove(enemys_info[i].enemy_id);
-                            enemys_info[i] = null;
-                            enemy_cnt--;
-                        }
-                    }
                 }
-                */
             }
         }
 
@@ -323,7 +340,7 @@ namespace cresent_overflow_server
                 send_data_str += "&"+player_use_skill_info_queue.Dequeue();
             }                                                           
             send_data_str += "$";
-            send_data_str += "PlayerUseAttackInfo[]";
+            send_data_str += "PlayerAttackInfo[]";
             while(player_attack_info_queue.Count != 0)
             { 
                 send_data_str += "&"+player_attack_info_queue.Dequeue();
@@ -340,7 +357,7 @@ namespace cresent_overflow_server
                 send_data_str += "&"+Funcs.DataToString(enemy_use_skill_info_queue.Dequeue());
             }
             send_data_str += "$";
-            send_data_str += "EnemyUseAttackInfo[]";
+            send_data_str += "EnemyAttackInfo[]";
             while(enemy_attack_info_queue.Count != 0)
             { 
                 send_data_str += "&"+Funcs.DataToString(enemy_attack_info_queue.Dequeue());
@@ -510,7 +527,7 @@ namespace cresent_overflow_server
             { 
                 enemys_info[enemy_creation_idx] = new EnemyInfo{enemy_id = enemy_id_idx.ToString(), enemy_sid = enemy_fix_id, hp = max_hp , status_ailment_id = new List<string>(), status_ailment_time = new List<string>()};
                 enemy_idx.Add(enemy_id_idx.ToString(), enemy_creation_idx);
-
+                enemy_recent_attack.Add(enemy_id_idx.ToString(), Utility.Today());
                 enemy_id_idx++;
                 enemy_cnt++;
                 for(int i=0; i<Constant.MAXENEMY; i++)
@@ -648,6 +665,26 @@ namespace cresent_overflow_server
                 }
             }
             return king;
+        }
+
+        // 게임 클리어 시 클라이언트에 보내줄 문자열 반환
+        private String GameClearSendStr()
+        {
+            string[] dealking = DealKing();
+            string healking = HealKing();
+            string sendstr = "clear";
+            
+            // dealking
+            sendstr += "$dealking";
+            if (dealking[0]!="") sendstr += "&" + dealking[0];
+            if (dealking[1]!="") sendstr += "&" + dealking[1];
+            if (dealking[2]!="") sendstr += "&" + dealking[2];
+
+            // healking
+            sendstr += "$healking";
+            if (healking != "") sendstr += "&" + healking;
+
+            return sendstr;
         }
 
         // 살아있는 플레이어 중 아무나 한명
