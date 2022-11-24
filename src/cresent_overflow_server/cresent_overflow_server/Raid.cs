@@ -185,6 +185,7 @@ namespace cresent_overflow_server
 
                 // 보스몬스터 행동 처리
                 {
+                // 스턴걸리면 행동 x
                 if (enemys_info[0] != null && enemys_info[0].enemy_sid == "OVER1" && !enemys_info[0].status_ailment_id.Contains("DF003"))
                 {
                     //일반공격
@@ -241,15 +242,17 @@ namespace cresent_overflow_server
                 {
                 for(int i=0; i<Constant.MAXENEMY; i++)
                 {
+                    // 스턴걸리면 행동 x
                     if (enemys_info[i]!=null && enemys_info[i].enemy_sid != "OVER1" && !enemys_info[i].status_ailment_id.Contains("DF003"))
                     {
                         int enemy_idx = constant.ENEMY_NAME_TO_IDX[enemys_info[i].enemy_sid];
-                            // 일반공격
+                        // 일반공격
+                        // 마비 상태이상 걸리면 공속 감소
                         TimeSpan plustime = enemys_info[0].status_ailment_id.Contains("DF001") ? TimeSpan.FromSeconds(0) : TimeSpan.FromSeconds(BOSS_ATTACK_DELAY.Seconds * 0.2);
                         if (TimeSpan.Compare(Utility.Today() - enemy_recent_attack[enemys_info[i].enemy_id], constant.ENEMY_ATTACK_DELAY[enemy_idx] + plustime) == 1)
                         {
                             enemy_recent_attack[enemys_info[i].enemy_id] = Utility.Today();
-                            EnemyAttack(enemys_info[i].enemy_id, RandomPlayerPick(), constant.ENEMY_ATTACK_DAMAGE[enemy_idx], constant.ENEMY_MAGIC_DAMAGE[enemy_idx]);
+                            EnemyAttack(enemys_info[i].enemy_id, RandomPlayerPickFromShort(), constant.ENEMY_ATTACK_DAMAGE[enemy_idx], constant.ENEMY_MAGIC_DAMAGE[enemy_idx]);
                         }
                         // 힐러일 경우 힐하기
                         if (enemys_info[i].enemy_sid == "M1010" && TimeSpan.Compare(Utility.Today() - enemy_recent_skill_attack[enemys_info[i].enemy_id], constant.ENEMY_SKILL_DELAY[enemy_idx]) == 1)
@@ -773,6 +776,36 @@ namespace cresent_overflow_server
             return tmparr[rand.Next(0,idx)];
         }
 
+        // 근거리부터 한명 고르기 
+        private String RandomPlayerPickFromShort()
+        {
+            int shortidx = 0, longidx = 0;
+            string[] shortarr = new string[Constant.MAXIMUM];
+            string[] longarr = new string[Constant.MAXIMUM];
+            for (int i = 0; i < Constant.MAXIMUM; i++)
+            {
+                if (players_info[i] != null)
+                {
+                    if (Array.IndexOf(constant.SHORT_CHARACTER, players_info[i].character_id) != -1)
+                    {
+                        shortarr[shortidx++] = players_info[i].client_id;
+                    }
+                    else
+                    {
+                        longarr[longidx++] = players_info[i].client_id;
+                    }
+                }
+            }
+            if (shortidx > 0)
+            {
+                return shortarr[rand.Next(0, shortidx)];
+            }
+            else
+            {
+                return longarr[rand.Next(0, longidx)];
+            }
+        }
+
         // 플레이어에게 물리피해 입히기 (최소 40%)
         private void PlayerApplyDamage(string client_id, int damage)
         {
@@ -877,11 +910,12 @@ namespace cresent_overflow_server
         //// 일반공격 후 결과 적용, send queue에 넣기
         private void BossAttack()
         {
+            // 마비 상태이상 걸리면 공속 감소
             TimeSpan plustime = enemys_info[0].status_ailment_id.Contains("DF001") ? TimeSpan.FromSeconds(0) : TimeSpan.FromSeconds(BOSS_ATTACK_DELAY.Seconds*0.2);
             if(TimeSpan.Compare(Utility.Today() - boss_recent_attack, BOSS_ATTACK_DELAY + plustime) == 1)
             { 
                 boss_recent_attack = Utility.Today();
-                EnemyAttack(enemys_info[0].enemy_id, RandomPlayerPick(), Constant.BOSS_ATTACK_DAMAGE, Constant.BOSS_MAGIC_DAMAGE);
+                EnemyAttack(enemys_info[0].enemy_id, RandomPlayerPickFromShort(), Constant.BOSS_ATTACK_DAMAGE, Constant.BOSS_MAGIC_DAMAGE);
             }
         }
 
@@ -890,7 +924,7 @@ namespace cresent_overflow_server
             if (TimeSpan.Compare(Utility.Today() - boss_recent_skill_1, BOSS_SKILL1_DELAY) == 1)
             {
                 boss_recent_skill_1 = Utility.Today();
-                string target_player = RandomPlayerPick();
+                string target_player = RandomPlayerPickFromShort();
                 EnemyUseSkill(enemys_info[0].enemy_id, target_player, "OVER1_SKILL1", true);
                 PlayerApplyMagicDamage(target_player, Constant.BOSS_SKILL1_DAMAGE);
             }

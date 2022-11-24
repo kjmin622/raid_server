@@ -30,5 +30,8 @@ namespace cresent_overflow_server
         public readonly int[] ENEMY_LONG_IDX = new int[5] { 3, 4, 7, 8, 9 };
         public const int ENEMY_EVADE = 2;
         public const int HEALER_HEAL_VALUE = 10;
+
+        // Character Info
+        public readonly string[] SHORT_CHARACTER = new string[12] { "002", "005", "101", "104", "107", "108", "201", "205", "206", "207", "211", "212" };
     }
 }
