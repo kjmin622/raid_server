@@ -17,12 +17,15 @@ namespace cresent_overflow_server.packet
         [DataMember]
         public int hp { get; set; }
         [DataMember]
+        public int phsysical_defense { get; set; }
+        [DataMember]
+        public int magic_defense { get; set; }
+        [DataMember]
         public List<string> status_ailment_id { get; set; }
         [DataMember]
         public List<string> status_ailment_time { get; set; }
         [DataMember]
         public int total_deal { get; set; }
-
         [DataMember]
         public int total_heal { get; set; }
     }

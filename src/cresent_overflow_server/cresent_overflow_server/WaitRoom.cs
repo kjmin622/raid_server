@@ -72,7 +72,7 @@ namespace cresent_overflow_server
                     }
                 }
                 clients_info[client_cnt] = tmpinfo;
-                Funcs.Print($"{client_cnt}: ({clients_info[client_cnt].client_id},{clients_info[client_cnt].character_id},{clients_info[client_cnt].hp})",port);
+                Funcs.Print($"{client_cnt}: ({clients_info[client_cnt].client_id},{clients_info[client_cnt].character_id},{clients_info[client_cnt].hp},{clients_info[client_cnt].phsysical_defense},{clients_info[client_cnt].magic_defense})",port);
                 Funcs.Print("- user info read success", port);
 
                 byte[] accept_masage = Funcs.StringToByteArray("AcceptComplete");

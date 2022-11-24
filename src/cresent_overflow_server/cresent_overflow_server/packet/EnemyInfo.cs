@@ -15,6 +15,8 @@ namespace cresent_overflow_server.packet
         [DataMember]
         public string enemy_sid { get; set; } // 클라이언트가 가지는 적 정보 공통 id
         [DataMember]
+        public int max_hp { get; set; }
+        [DataMember]
         public int hp { get; set; }
         [DataMember]
         public List<string> status_ailment_id { get; set; }

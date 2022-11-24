@@ -1,0 +1,28 @@
+﻿<Properties StartupConfiguration="{88D68453-3F68-4175-84D4-DD1ED56D4350}|Default">
+  <MonoDevelop.Ide.Workbench ActiveDocument="cresent_overflow_server/Constant.cs">
+    <Files>
+      <File FileName="cresent_overflow_server/Raid.cs" Line="7" Column="12" />
+      <File FileName="cresent_overflow_server/WaitRoom.cs" Line="1" Column="1" />
+      <File FileName="cresent_overflow_server/Program.cs" Line="19" Column="1" />
+      <File FileName="cresent_overflow_server/Constant.cs" Line="1" Column="1" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="cresent_overflow_server" expanded="True">
+            <Node name="cresent_overflow_server" expanded="True">
+              <Node name="Constant.cs" selected="True" />
+            </Node>
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.ItemProperties.cresent__overflow__server PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+</Properties>

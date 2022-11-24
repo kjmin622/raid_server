@@ -16,5 +16,9 @@ namespace cresent_overflow_server.packet
         public string character_id { get; set; }
         [DataMember]
         public int hp { get; set; }
+        [DataMember]
+        public int phsysical_defense { get; set; }
+        [DataMember]
+        public int magic_defense { get; set; }
     }
 }

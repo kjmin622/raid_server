@@ -15,7 +15,7 @@ namespace cresent_overflow_server.packet
         [DataMember]
         public string skill_id { get; set; }
         [DataMember]
-        public bool is_player { get; set; }
+        public bool to_player { get; set; } // 플레이어에게 사용했는가 ?
         [DataMember]
         public string target_id { get; set; }
     }

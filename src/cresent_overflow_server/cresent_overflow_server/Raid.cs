@@ -21,8 +21,10 @@ namespace cresent_overflow_server
         private DateTime raid_start_time;
         private Task<string>[] read_datas;
         private string recv_data_str;
-
         private string send_data_str;
+
+        private DateTime one_second_counter;
+        bool one_second;
 
         private ClientInfo[] clients_info;
 
@@ -44,11 +46,13 @@ namespace cresent_overflow_server
         private int enemy_id_idx;
         private int enemy_cnt;
 
+        // 상수 모음집
+        private Constant constant = new Constant();
+        
         // 일반몬스터 행동 관련 변수들
         //// enemy_id : recent_time
         private Dictionary<string,DateTime> enemy_recent_attack;
-        private TimeSpan M1001_ATTACK_DELAY = new TimeSpan(0,0,0,1);
-        private TimeSpan M1004_ATTACK_DELAY = new TimeSpan(0,0,0,1,200);
+        private Dictionary<string, DateTime> enemy_recent_skill_attack;
 
         // 보스 관련 변수들
         private DateTime less_minute5_boss_appear_time;
@@ -103,6 +107,7 @@ namespace cresent_overflow_server
 
             // 일반 몬스터 행동 관련 변수들
             enemy_recent_attack = new Dictionary<string, DateTime>();
+            enemy_recent_skill_attack = new Dictionary<string, DateTime>();
 
             // 보스 관련 변수들
             less_minute5_boss_appear_time = server_start_time;
@@ -115,7 +120,6 @@ namespace cresent_overflow_server
 
         public async void Start()
         {
-            int debug_cnt = 0;
 
             // test player
             /*
@@ -134,11 +138,22 @@ namespace cresent_overflow_server
             while (true)
             {
                 Thread.Sleep(50);
+                // 1초 지났는지 확인
+                if (TimeSpan.Compare(Utility.Today() - one_second_counter, TimeSpan.FromSeconds(1)) == 1)
+                {
+                    one_second_counter = Utility.Today();
+                    one_second = true;
+                }
+                else
+                {
+                    one_second = false;
+                }
+
                 // 클라이언트로부터 정보 받아오기
                 {
                 recv_data_str = "";
                 send_data_str = "";
-                int idx = 0;
+
                 for (int i = 0; i < Constant.MAXIMUM; i++) 
                 {
                     if (clients[i] != null)
@@ -170,9 +185,17 @@ namespace cresent_overflow_server
 
                 // 보스몬스터 행동 처리
                 {
-                if (enemys_info[0] != null && enemys_info[0].enemy_sid == "OVER1")
-                { 
+                if (enemys_info[0] != null && enemys_info[0].enemy_sid == "OVER1" && !enemys_info[0].status_ailment_id.Contains("DF003"))
+                {
+                    //일반공격
                     BossAttack();
+                    //스킬 1
+                    BossSkill1();
+                    //스킬 2
+                    BossSkill2();
+                    //스킬 3
+                    BossSkill3();
+
                 }else
                 { 
                     boss_recent_skill_1 = Utility.Today();
@@ -194,7 +217,7 @@ namespace cresent_overflow_server
                         }
                         enemy_creation_idx = 0;
                     }
-                    AddEnemys(rand.Next(7,13));
+                    AddEnemys(18);
                 }
                 else if(ElapsedTime().TotalMinutes<5 && enemy_cnt == 0 && !less_minute5_boss_appear)
                 { 
@@ -218,28 +241,54 @@ namespace cresent_overflow_server
                 {
                 for(int i=0; i<Constant.MAXENEMY; i++)
                 {
-                    if (enemys_info[i]!=null && enemys_info[i].enemy_sid != "OVER1")
+                    if (enemys_info[i]!=null && enemys_info[i].enemy_sid != "OVER1" && !enemys_info[i].status_ailment_id.Contains("DF003"))
                     {
-                        switch(enemys_info[i].enemy_sid)
-                        { 
-                            case "M1001":
-                                if(TimeSpan.Compare(Utility.Today() - enemy_recent_attack[enemys_info[i].enemy_id], M1001_ATTACK_DELAY) == 1)
-                                { 
-                                    enemy_recent_attack[enemys_info[i].enemy_id] = Utility.Today();
-                                    EnemyAttack(enemys_info[i].enemy_id, RandomPlayerPick(), 7);
-                                }  
-                                break;
-                            case "M1004":
-                                if(TimeSpan.Compare(Utility.Today() - enemy_recent_attack[enemys_info[i].enemy_id], M1001_ATTACK_DELAY) == 1)
-                                { 
-                                    enemy_recent_attack[enemys_info[i].enemy_id] = Utility.Today();
-                                    EnemyAttack(enemys_info[i].enemy_id, RandomPlayerPick(), 8);
-                                }
-                                break;
+                        int enemy_idx = constant.ENEMY_NAME_TO_IDX[enemys_info[i].enemy_sid];
+                            // 일반공격
+                        TimeSpan plustime = enemys_info[0].status_ailment_id.Contains("DF001") ? TimeSpan.FromSeconds(0) : TimeSpan.FromSeconds(BOSS_ATTACK_DELAY.Seconds * 0.2);
+                        if (TimeSpan.Compare(Utility.Today() - enemy_recent_attack[enemys_info[i].enemy_id], constant.ENEMY_ATTACK_DELAY[enemy_idx] + plustime) == 1)
+                        {
+                            enemy_recent_attack[enemys_info[i].enemy_id] = Utility.Today();
+                            EnemyAttack(enemys_info[i].enemy_id, RandomPlayerPick(), constant.ENEMY_ATTACK_DAMAGE[enemy_idx], constant.ENEMY_MAGIC_DAMAGE[enemy_idx]);
                         }
+                        // 힐러일 경우 힐하기
+                        if (enemys_info[i].enemy_sid == "M1010" && TimeSpan.Compare(Utility.Today() - enemy_recent_skill_attack[enemys_info[i].enemy_id], constant.ENEMY_SKILL_DELAY[enemy_idx]) == 1)
+                        {
+                                enemy_recent_skill_attack[enemys_info[i].enemy_id] = Utility.Today();
+                                EnemyUseSkill(enemys_info[i].enemy_id, enemys_info[i].enemy_id, "HEAL", false);
+                                for (int j = 0; j < Constant.MAXENEMY; j++)
+                                {
+                                    if (enemys_info[i] != null)
+                                    {
+                                        EnemyHeal(enemys_info[i].enemy_id, Constant.HEALER_HEAL_VALUE);
+                                    }
+                                }
+                        }
+
                     }
                 }
                 }
+
+                //// 상태이상 처리
+                if (one_second)
+                {
+                    for (int i = 0; i < Constant.MAXIMUM; i++)
+                    {
+                        if (players_info[i] != null)
+                        {
+                            ApplyStatusAilmentDamage(players_info[i].client_id, true);
+                        }
+                    }
+                    for (int i = 0; i < Constant.MAXENEMY; i++)
+                    {
+                        if (enemys_info[i] != null)
+                        {
+                            ApplyStatusAilmentDamage(enemys_info[i].enemy_id, false);
+                        }
+                    }
+
+                }
+
 
                 // 게임 종료 연산
                 {
@@ -302,18 +351,12 @@ namespace cresent_overflow_server
         {
             try
             {
-                this.recv_data_str += Funcs.PacketToString(stream, 4096);
+                recv_data_str += Funcs.PacketToString(stream, 4096);
             }
             catch 
             {
                 ;
             }
-        }
-    
-        // 데이터를 직렬화해서 send_data_str에 넣기
-        private void AddSendData<T>(T data)
-        {
-            send_data_str += data.GetType().Name+"&"+Funcs.DataToString(data)+"$";
         }
 
         // 배열 직렬화해서 send_data_str에 넣기
@@ -374,7 +417,9 @@ namespace cresent_overflow_server
                 if (clients[i]!=null)
                 {
                     infos[i] = new PlayerInfo { client_id = clients_info[i].client_id, character_id = clients_info[i].character_id,
-                                                        hp = clients_info[i].hp, status_ailment_id = new List<string>(), status_ailment_time = new List<string>(),
+                                                        hp = clients_info[i].hp, phsysical_defense = clients_info[i].phsysical_defense,
+                                                        magic_defense = clients_info[i].magic_defense,
+                                                        status_ailment_id = new List<string>(), status_ailment_time = new List<string>(),
                                                         total_deal = 0, total_heal = 0
                     };
                     player_idx.Add(clients_info[i].client_id,i);
@@ -428,6 +473,40 @@ namespace cresent_overflow_server
         { 
             return Utility.Today() - raid_start_time;
         }
+
+
+        private void RemoveEnemy(string enemy_id)
+        {
+            enemys_info[enemy_idx[enemy_id]] = null;
+            enemy_idx.Remove(enemy_id);
+            enemy_recent_attack.Remove(enemy_id);
+            enemy_recent_skill_attack.Remove(enemy_id);
+            enemy_cnt--;
+
+        }
+        private void ApplyDamage(string target_id, int value, bool to_player)
+        {
+            if (to_player)
+            {
+                players_info[player_idx[target_id]].hp = Convert.ToInt32(Math.Max(0, players_info[player_idx[target_id]].hp - value));
+            }
+            else
+            {
+                if (enemy_idx.ContainsKey(target_id))
+                {
+                    enemys_info[enemy_idx[target_id]].hp = Convert.ToInt32(Math.Max(0, enemys_info[enemy_idx[target_id]].hp - value));
+                    // 보스 hp는 따로 저장
+                    if (enemys_info[enemy_idx[target_id]].enemy_sid == "OVER1")
+                    {
+                        boss_hp = enemys_info[enemy_idx[target_id]].hp;
+                    }
+                    if (enemys_info[enemy_idx[target_id]].hp == 0)
+                    {
+                        RemoveEnemy(target_id);
+                    }
+                }
+            }
+        }
         
         // 클라이언트가 준 데이터가 들어간 player_damage_info_queue의 데미지 정보 적용
         private bool ApplyDamageToEnemy()
@@ -444,19 +523,7 @@ namespace cresent_overflow_server
                 if (enemy_idx.ContainsKey(enemyid) && player_idx.ContainsKey(clientid))
                 {
                     players_info[player_idx[clientid]].total_deal += damage;
-                    enemys_info[enemy_idx[enemyid]].hp -= damage;
-                    // 보스 hp는 따로 저장
-                    if(enemys_info[enemy_idx[enemyid]].enemy_sid=="OVER1")
-                    { 
-                        boss_hp = enemys_info[enemy_idx[enemyid]].hp;
-                    }
-                    // 적 사망
-                    if(enemys_info[enemy_idx[enemyid]].hp <= 0)
-                    {
-                        enemys_info[enemy_idx[enemyid]] = null;
-                        enemy_idx.Remove(enemyid);
-                        enemy_cnt--;
-                    }
+                    ApplyDamage(enemyid, damage, false);
                 }
             }
             return return_value;
@@ -525,9 +592,10 @@ namespace cresent_overflow_server
         {
             if (enemy_cnt < Constant.MAXENEMY) 
             { 
-                enemys_info[enemy_creation_idx] = new EnemyInfo{enemy_id = enemy_id_idx.ToString(), enemy_sid = enemy_fix_id, hp = max_hp , status_ailment_id = new List<string>(), status_ailment_time = new List<string>()};
+                enemys_info[enemy_creation_idx] = new EnemyInfo{enemy_id = enemy_id_idx.ToString(), enemy_sid = enemy_fix_id, max_hp = max_hp, hp = max_hp , status_ailment_id = new List<string>(), status_ailment_time = new List<string>()};
                 enemy_idx.Add(enemy_id_idx.ToString(), enemy_creation_idx);
                 enemy_recent_attack.Add(enemy_id_idx.ToString(), Utility.Today());
+                enemy_recent_skill_attack.Add(enemy_id_idx.ToString(), Utility.Today());
                 enemy_id_idx++;
                 enemy_cnt++;
                 for(int i=0; i<Constant.MAXENEMY; i++)
@@ -546,15 +614,17 @@ namespace cresent_overflow_server
         { 
             int add_enemy_cnt = cnt/2;
             for(int i=0; i<add_enemy_cnt; i++) 
-            { 
-                AddEnemy("M1001",140);
-                AddEnemy("M1004",135);
+            {
+                int short_idx = constant.ENEMY_SHORT_IDX[rand.Next(0, 5)];
+                int long_idx = constant.ENEMY_LONG_IDX[rand.Next(0, 5)];
+                AddEnemy(constant.ENEMY_IDX_TO_NAME[short_idx], constant.ENEMY_MAXHP[short_idx]);
+                AddEnemy(constant.ENEMY_IDX_TO_NAME[long_idx], constant.ENEMY_MAXHP[long_idx]);
             }
             if(add_enemy_cnt%2==1)
-            { 
-                AddEnemy("M1001",140);
+            {
+                int short_idx = constant.ENEMY_SHORT_IDX[rand.Next(0, 5)];
+                AddEnemy(constant.ENEMY_IDX_TO_NAME[short_idx], constant.ENEMY_MAXHP[short_idx]);
             }
-            
         }
         
         // 상태이상이 끝났으면 제거
@@ -703,32 +773,177 @@ namespace cresent_overflow_server
             return tmparr[rand.Next(0,idx)];
         }
 
-        // 플레이어에게 피해 입히기
+        // 플레이어에게 물리피해 입히기 (최소 40%)
         private void PlayerApplyDamage(string client_id, int damage)
         {
-            players_info[player_idx[client_id]].hp = Convert.ToInt32(Math.Max(0, players_info[player_idx[client_id]].hp-damage));
+            double defense_reduce = players_info[player_idx[client_id]].status_ailment_id.Contains("DF004") ? 0.5 : 1;
+            int applydamage = Convert.ToInt32(Math.Max(damage * 0.4, damage - players_info[player_idx[client_id]].phsysical_defense * defense_reduce));
+            players_info[player_idx[client_id]].hp = Convert.ToInt32(Math.Max(0, players_info[player_idx[client_id]].hp-applydamage));
+        }
+
+        // 플레이어에게 마법피해 입히기 (최소 60%)
+        private void PlayerApplyMagicDamage(string client_id, int damage)
+        {
+            double defense_reduce = players_info[player_idx[client_id]].status_ailment_id.Contains("DF004") ? 0.5 : 1;
+            int applydamage = Convert.ToInt32(Math.Max(damage * 0.6, damage - players_info[player_idx[client_id]].magic_defense * defense_reduce));
+            players_info[player_idx[client_id]].hp = Convert.ToInt32(Math.Max(0, players_info[player_idx[client_id]].hp - applydamage));
         }
 
         // 몬스터 공통 행동
         //// 몬스터 일반 공격 결과 적용 후 send queue에 넣기
-        private void EnemyAttack(string enemy_id, string target_client_id, int damage)
+        private void EnemyAttack(string enemy_id, string target_client_id, int phsydamage, int magicdamage)
         { 
             if(target_client_id == "") return;
-            PlayerApplyDamage(target_client_id, damage);
+
+            double damage_reduce = enemys_info[enemy_idx[enemy_id]].status_ailment_id.Contains("DF005") ? 0.7 : 1;
+
+            PlayerApplyDamage(target_client_id, Convert.ToInt32(phsydamage*damage_reduce));
+            PlayerApplyMagicDamage(target_client_id, Convert.ToInt32(magicdamage * damage_reduce));
             enemy_attack_info_queue.Enqueue(new EnemyAttackInfo { 
                 client_id = target_client_id,
                 enemy_id = enemy_id
             });
         }
 
+        // 힐
+        private void EnemyHeal(string target_id, int value)
+        {
+            if (target_id == "") return;
+            enemys_info[enemy_idx[target_id]].hp = Convert.ToInt32(Math.Min(enemys_info[enemy_idx[target_id]].max_hp, enemys_info[enemy_idx[target_id]].hp + value));
+        }
+
+        private void EnemyUseSkill(string enemy_id, string target_id, string skill_id, bool to_player)
+        {
+            enemy_use_skill_info_queue.Enqueue(new EnemyUseSkillInfo
+            {
+                enemy_id = enemy_id,
+                skill_id = skill_id,
+                to_player = to_player,
+                target_id = target_id
+            });
+        }
+
+        // 몬스터가 거는 상태이상 또는 버프
+        private void EnemyUseSkillStatusAilments(string target_id, string ailment_id, DateTime time, bool to_player)
+        {
+            // 플레이어일 일 때 
+            if (to_player)
+            {
+                if (target_id != "" && player_idx.ContainsKey(target_id))
+                {
+                    // 이미 상태이상이 걸려있으면 더 긴 시간으로 설정
+                    if (players_info[player_idx[target_id]].status_ailment_id.Contains(ailment_id))
+                    {
+                        int idx = players_info[player_idx[target_id]].status_ailment_id.FindIndex(a => a.Contains(ailment_id));
+                        DateTime now_ailment_time = DateTime.Parse(players_info[player_idx[target_id]].status_ailment_time[idx]);
+                        if (DateTime.Compare(time, now_ailment_time) > 0)
+                        {
+                            players_info[player_idx[target_id]].status_ailment_time[idx] = time.ToString();
+                        }
+                    }
+                    // 상태이상이 없었다면 걸어주기
+                    else
+                    {
+                        players_info[player_idx[target_id]].status_ailment_id.Add(ailment_id);
+                        players_info[player_idx[target_id]].status_ailment_time.Add(time.ToString());
+                    }
+                }
+            }
+            else
+            {
+                if (target_id != "" && enemy_idx.ContainsKey(target_id))
+                {
+                    // 이미 상태이상이 걸려있으면 더 긴 시간으로 설정
+                    if (enemys_info[enemy_idx[target_id]].status_ailment_id.Contains(ailment_id))
+                    {
+                        int idx = enemys_info[enemy_idx[target_id]].status_ailment_id.FindIndex(a => a.Contains(ailment_id));
+                        DateTime now_ailment_time = DateTime.Parse(enemys_info[enemy_idx[target_id]].status_ailment_time[idx]);
+                        if (DateTime.Compare(time, now_ailment_time) > 0)
+                        {
+                            enemys_info[enemy_idx[target_id]].status_ailment_time[idx] = time.ToString();
+                        }
+                    }
+                    // 상태이상이 없었다면 걸어주기
+                    else
+                    {
+                        enemys_info[enemy_idx[target_id]].status_ailment_id.Add(ailment_id);
+                        enemys_info[enemy_idx[target_id]].status_ailment_time.Add(time.ToString());
+                    }
+                }
+            }
+        }
+
         // 보스 행동
         //// 일반공격 후 결과 적용, send queue에 넣기
         private void BossAttack()
-        { 
-            if(TimeSpan.Compare(Utility.Today() - boss_recent_attack, BOSS_ATTACK_DELAY) == 1)
+        {
+            TimeSpan plustime = enemys_info[0].status_ailment_id.Contains("DF001") ? TimeSpan.FromSeconds(0) : TimeSpan.FromSeconds(BOSS_ATTACK_DELAY.Seconds*0.2);
+            if(TimeSpan.Compare(Utility.Today() - boss_recent_attack, BOSS_ATTACK_DELAY + plustime) == 1)
             { 
                 boss_recent_attack = Utility.Today();
-                EnemyAttack(enemys_info[0].enemy_id, RandomPlayerPick(), Constant.BOSS_ATTACK_DAMAGE);
+                EnemyAttack(enemys_info[0].enemy_id, RandomPlayerPick(), Constant.BOSS_ATTACK_DAMAGE, Constant.BOSS_MAGIC_DAMAGE);
+            }
+        }
+
+        private void BossSkill1()
+        {
+            if (TimeSpan.Compare(Utility.Today() - boss_recent_skill_1, BOSS_SKILL1_DELAY) == 1)
+            {
+                boss_recent_skill_1 = Utility.Today();
+                string target_player = RandomPlayerPick();
+                EnemyUseSkill(enemys_info[0].enemy_id, target_player, "OVER1_SKILL1", true);
+                PlayerApplyMagicDamage(target_player, Constant.BOSS_SKILL1_DAMAGE);
+            }
+        }
+
+        private void BossSkill2()
+        {
+            if (TimeSpan.Compare(Utility.Today() - boss_recent_skill_2, BOSS_SKILL2_DELAY) == 1)
+            {
+                boss_recent_skill_2 = Utility.Today();
+                EnemyUseSkill(enemys_info[0].enemy_id, enemys_info[0].enemy_id, "OVER1_SKILL2", true);
+                int cmd = rand.Next(0, 3);
+                string ailment = cmd == 0 ? "DF002" : (cmd == 1 ? "DF004" : "DF005");
+                
+                for (int i = 0; i < Constant.MAXIMUM; i++)
+                {
+                    if (players_info[i] != null)
+                    {
+                        EnemyUseSkillStatusAilments(players_info[i].client_id, ailment, Utility.Today().AddSeconds(2), true);
+                    }
+                }
+                
+            }
+        }
+
+        private void BossSkill3()
+        {
+            if (enemy_cnt > 1)
+            {
+                boss_recent_skill_3 = Utility.Today();
+            }
+            if (TimeSpan.Compare(Utility.Today() - boss_recent_skill_3, BOSS_SKILL3_DELAY) == 1)
+            {
+                boss_recent_skill_3 = Utility.Today();
+                EnemyUseSkill(enemys_info[0].enemy_id, enemys_info[0].enemy_id, "OVER1_SKILL3", false);
+                AddEnemys(15);
+            }
+        }
+
+        // 마비, 화상, 중독
+        private void ApplyStatusAilmentDamage(string target_id, bool to_player)
+        {
+            if (to_player)
+            {
+                if (players_info[player_idx[target_id]].status_ailment_id.Contains("DF001")) ApplyDamage(target_id, 3, true);
+                if (players_info[player_idx[target_id]].status_ailment_id.Contains("DF002")) ApplyDamage(target_id, 6, true);
+                if (players_info[player_idx[target_id]].status_ailment_id.Contains("DF006")) ApplyDamage(target_id, 3, true);
+            }
+            else
+            {
+                if (enemys_info[enemy_idx[target_id]].status_ailment_id.Contains("DF001")) ApplyDamage(target_id, 3, false);
+                if (enemys_info[enemy_idx[target_id]].status_ailment_id.Contains("DF002")) ApplyDamage(target_id, 6, false);
+                if (enemys_info[enemy_idx[target_id]].status_ailment_id.Contains("DF006")) ApplyDamage(target_id, 3, false);
             }
         }
     }
